@@ -58,11 +58,6 @@
       margin-top: 10px;
     }
 
-    #startCamera {
-      background: #42a5f5;
-      color: white;
-    }
-
     #startDiagnosis {
       background: #64b5f6;
       color: white;
@@ -80,7 +75,7 @@
       justify-content: center;
     }
 
-    #preview img {
+    #preview video {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -105,10 +100,11 @@
     <h1>AI顔診断</h1>
     <p>あなたのお顔を診断してみましょう！<br>診断にはカメラの許可が必要です。</p>
     <input id="nameInput" placeholder="あなたの名前を入力" />
-    <button id="startCamera">📷 カメラを起動</button>
     <button id="startDiagnosis">🧠 診断をはじめる</button>
 
-    <div id="preview"></div>
+    <div id="preview">
+      <video id="video" autoplay playsinline muted></video>
+    </div>
     <div id="status"></div>
 
     <small>※ この写真は診断目的でのみ使用され、外部に公開されることはありません。</small>
@@ -121,68 +117,69 @@
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3d2pubHByc250bWRjeXRrdGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2NDU3ODcsImV4cCI6MjA3NjIyMTc4N30.Dni-WtNXSEdyRxH2TSq0oTR9homfAi1Ptz1h0MURFrY";
     const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const startCameraBtn = document.getElementById("startCamera");
     const startDiagnosisBtn = document.getElementById("startDiagnosis");
     const preview = document.getElementById("preview");
+    const video = document.getElementById("video");
     const nameInput = document.getElementById("nameInput");
     const status = document.getElementById("status");
 
     let stream;
-    let video;
 
-    async function initCamera() {
+    // ✅ ページ読み込み時にカメラプレビュー起動
+    window.addEventListener("load", async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
           audio: false,
         });
-
-        video = document.createElement("video");
         video.srcObject = stream;
-        video.play();
-        preview.innerHTML = "";
-        preview.appendChild(video);
         status.textContent = "カメラ起動中...";
       } catch (err) {
-        status.textContent = "カメラが許可されませんでした: " + err.message;
+        status.textContent = "カメラが起動できません: " + err.message;
       }
-    }
+    });
 
-    async function captureAndUpload() {
+    // ✅ 診断ボタンで再度権限要求→撮影→アップロード
+    startDiagnosisBtn.addEventListener("click", async () => {
       const name = nameInput.value.trim();
       if (!name) {
         alert("名前を入力してください");
         return;
       }
-      if (!stream) {
-        await initCamera();
+
+      try {
+        // Safariで再度ダイアログを出すために再リクエスト
+        await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: false,
+        });
+
+        // 撮影
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.9));
+
+        const filename = `${name}_${Date.now()}.jpg`;
+
+        status.textContent = "送信中...";
+
+        const { error } = await supabase.storage.from("photos").upload(filename, blob, { upsert: true });
+        if (error) {
+          status.textContent = "送信エラー: " + error.message;
+        } else {
+          const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/photos/${filename}`;
+          status.innerHTML = `
+            ✅ 撮影＆送信完了！<br>
+            <a href="${publicUrl}" target="_blank" style="color:orange;">確認用リンクを開く</a>
+          `;
+        }
+      } catch (err) {
+        status.textContent = "カメラ権限が必要です: " + err.message;
       }
-
-      const canvas = document.createElement("canvas");
-      const ctx = canvas.getContext("2d");
-      canvas.width = video.videoWidth || 640;
-      canvas.height = video.videoHeight || 480;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.9));
-
-      const filename = `${name}_${Date.now()}.jpg`;
-
-      status.textContent = "送信中...";
-
-      const { error } = await supabase.storage.from("photos").upload(filename, blob, { upsert: true });
-      if (error) {
-        status.textContent = "送信エラー: " + error.message;
-      } else {
-        status.innerHTML = `✅ 撮影＆送信完了！<br>ファイル名: ${filename}`;
-        const imgUrl = `${SUPABASE_URL}/storage/v1/object/public/photos/${filename}`;
-        preview.innerHTML = `<img src="${imgUrl}" alt="撮影結果" />`;
-      }
-
-      stream.getTracks().forEach((t) => t.stop());
-    }
-
-    startCameraBtn.addEventListener("click", initCamera);
-    startDiagnosisBtn.addEventListener("click", captureAndUpload);
+    });
   </script>
 </body>
 </html>
