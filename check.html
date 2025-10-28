@@ -26,6 +26,20 @@
     p { color: #555; }
   </style>
 </head>
+  <script>
+  const user = prompt("ユーザー名を入力してください:");
+  const pass = prompt("パスワードを入力してください:");
+
+  // 認証情報（好きなものに変更OK）
+  const USERNAME = "銀さん";
+  const PASSWORD = "20100317";
+
+  if (user !== USERNAME || pass !== PASSWORD) {
+    alert("認証に失敗しました。");
+    document.body.innerHTML = "<h2>アクセス拒否</h2>";
+    throw new Error("Unauthorized");
+  }
+</script>
 <body>
   <h1>📸 撮影された写真一覧</h1>
   <p>診断ページから撮影されたすべての写真を表示しています。</p>
