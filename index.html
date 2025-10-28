@@ -2,182 +2,127 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI顔診断</title>
   <style>
     body {
-      font-family: "Helvetica Neue", system-ui, sans-serif;
-      background: linear-gradient(135deg, #e3f2fd, #fce4ec);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      margin: 0;
-    }
-
-    .container {
-      background: white;
-      border-radius: 20px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      padding: 30px 25px;
-      width: 90%;
-      max-width: 420px;
+      font-family: "Helvetica", sans-serif;
+      background: linear-gradient(to right, #dfe9f3, #ffffff);
       text-align: center;
+      padding: 20px;
     }
-
-    h1 {
-      color: #1976d2;
-      font-size: 1.8rem;
-      margin-bottom: 10px;
-    }
-
-    p {
-      color: #333;
-      font-size: 0.95rem;
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 1rem;
-      margin-bottom: 15px;
-    }
-
-    button {
-      display: block;
-      width: 100%;
-      padding: 12px;
-      font-size: 1rem;
+    h1 { color: #0066ff; margin-bottom: 10px; }
+    p { color: #333; }
+    input, button {
+      margin: 10px;
+      padding: 10px 15px;
+      border-radius: 10px;
       border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-top: 10px;
+      font-size: 16px;
     }
-
-    #startDiagnosis {
-      background: #64b5f6;
+    input {
+      width: 80%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #007bff;
       color: white;
+      cursor: pointer;
     }
-
+    button:hover {
+      background-color: #0056cc;
+    }
     #preview {
-      margin-top: 20px;
-      width: 100%;
-      aspect-ratio: 1/1;
-      background: #f5f5f5;
-      border-radius: 12px;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #preview video {
-      width: 100%;
-      height: 100%;
+      margin-top: 15px;
+      width: 250px;
+      height: 200px;
+      background: white;
+      border-radius: 15px;
       object-fit: cover;
     }
-
     small {
+      color: gray;
       display: block;
-      margin-top: 15px;
-      color: #666;
-      font-size: 0.8rem;
-    }
-
-    #status {
-      margin-top: 10px;
-      font-size: 0.9rem;
-      color: #888;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>AI顔診断</h1>
-    <p>あなたのお顔を診断してみましょう！<br>診断にはカメラの許可が必要です。</p>
-    <input id="nameInput" placeholder="あなたの名前を入力" />
-    <button id="startDiagnosis">🧠 診断をはじめる</button>
+  <h1>AI顔診断</h1>
+  <p>あなたのお顔を診断してみましょう！<br>診断にはカメラの許可が必要です。</p>
 
-    <div id="preview">
-      <video id="video" autoplay playsinline muted></video>
-    </div>
-    <div id="status"></div>
+  <input id="username" type="text" placeholder="あなたの名前を入力" />
+  <br />
+  <button id="startBtn">🧠 診断をはじめる</button>
 
-    <small>※ この写真は診断目的でのみ使用され、外部に公開されることはありません。</small>
-  </div>
+  <br />
+  <video id="camera" autoplay playsinline muted width="250" height="200" style="border-radius: 15px;"></video>
+
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <p id="status"></p>
+
+  <small>※この写真は診断目的でのみ使用され、外部に公開されることはありません。</small>
 
   <script type="module">
-    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-    const SUPABASE_URL = "https://hwwjnlprsntmdcytktbm.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3d2pubHByc250bWRjeXRrdGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2NDU3ODcsImV4cCI6MjA3NjIyMTc4N30.Dni-WtNXSEdyRxH2TSq0oTR9homfAi1Ptz1h0MURFrY";
-    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabaseUrl = "あなたのSUPABASE_URL";
+    const supabaseKey = "あなたのSUPABASE_ANON_KEY";
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const startDiagnosisBtn = document.getElementById("startDiagnosis");
-    const preview = document.getElementById("preview");
-    const video = document.getElementById("video");
-    const nameInput = document.getElementById("nameInput");
+    const video = document.getElementById("camera");
+    const canvas = document.getElementById("canvas");
+    const startBtn = document.getElementById("startBtn");
     const status = document.getElementById("status");
 
-    let stream;
-
-    // ✅ ページ読み込み時にカメラプレビュー起動
-    window.addEventListener("load", async () => {
+    // カメラ起動
+    async function initCamera() {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false,
-        });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
         video.srcObject = stream;
-        status.textContent = "カメラ起動中...";
       } catch (err) {
-        status.textContent = "カメラが起動できません: " + err.message;
+        status.textContent = "カメラアクセスが拒否されました。設定を確認してください。";
+        console.error(err);
       }
-    });
+    }
 
-    // ✅ 診断ボタンで再度権限要求→撮影→アップロード
-    startDiagnosisBtn.addEventListener("click", async () => {
-      const name = nameInput.value.trim();
+    initCamera(); // ページ読み込み時にカメラ起動
+
+    // 診断開始ボタン押下時
+    startBtn.addEventListener("click", async () => {
+      const name = document.getElementById("username").value.trim();
       if (!name) {
-        alert("名前を入力してください");
+        alert("名前を入力してください。");
         return;
       }
 
-      try {
-        // Safariで再度ダイアログを出すために再リクエスト
-        await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false,
-        });
+      status.textContent = "撮影中...📸";
 
-        // 撮影
-        const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = video.videoWidth || 640;
-        canvas.height = video.videoHeight || 480;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise((res) => canvas.toBlob(res, "image/jpeg", 0.9));
+      // 撮影
+      const context = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        const filename = `${name}_${Date.now()}.jpg`;
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg"));
 
-        status.textContent = "送信中...";
+      // ファイル名：名前_YYYYMMDD_HHMM.jpg
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[-:T]/g, "").slice(0, 12);
+      const fileName = `${name}_${timestamp}.jpg`;
 
-        const { error } = await supabase.storage.from("photos").upload(filename, blob, { upsert: true });
-        if (error) {
-          status.textContent = "送信エラー: " + error.message;
-        } else {
-          const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/photos/${filename}`;
-          status.innerHTML = `
-            ✅ 撮影＆送信完了！<br>
-            <a href="${publicUrl}" target="_blank" style="color:orange;">確認用リンクを開く</a>
-          `;
-        }
-      } catch (err) {
-        status.textContent = "カメラ権限が必要です: " + err.message;
+      // Supabaseへアップロード
+      const { error } = await supabase.storage.from("photos").upload(fileName, blob, {
+        contentType: "image/jpeg",
+      });
+
+      if (error) {
+        console.error(error);
+        status.textContent = "アップロードに失敗しました。";
+      } else {
+        status.innerHTML = `診断完了しました！<br><a href="check.html">📷 確認ページを開く</a>`;
       }
     });
   </script>
