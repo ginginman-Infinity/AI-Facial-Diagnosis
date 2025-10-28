@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>診断結果一覧</title>
+  <style>
+    body {
+      font-family: "Helvetica", sans-serif;
+      background: #f6f8fb;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 { color: #333; }
+    .photo {
+      margin: 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 220px;
+    }
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    p { color: #555; }
+  </style>
+</head>
+<body>
+  <h1>📸 撮影された写真一覧</h1>
+  <p>診断ページから撮影されたすべての写真を表示しています。</p>
+  <div id="photoGrid" class="grid"></div>
+
+  <script type="module">
+    import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+    const supabaseUrl = "https://hwwjnlprsntmdcytktbm.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3d2pubHByc250bWRjeXRrdGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2NDU3ODcsImV4cCI6MjA3NjIyMTc4N30.Dni-WtNXSEdyRxH2TSq0oTR9homfAi1Ptz1h0MURFrY";
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    async function loadPhotos() {
+      const { data, error } = await supabase.storage.from("photos").list("", {
+        limit: 100,
+        sortBy: { column: "created_at", order: "desc" },
+      });
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      const grid = document.getElementById("photoGrid");
+      grid.innerHTML = "";
+
+      for (const file of data) {
+        const { data: urlData } = await supabase.storage.from("photos").getPublicUrl(file.name);
+        const img = document.createElement("img");
+        img.src = urlData.publicUrl;
+        img.className = "photo";
+        grid.appendChild(img);
+      }
+    }
+
+    loadPhotos();
+  </script>
+</body>
+</html>
