@@ -27,16 +27,20 @@
   </style>
 </head>
   <script>
-  const user = prompt("ユーザー名を入力してください:");
-  const pass = prompt("パスワードを入力してください:");
-
-  // 認証情報（好きなものに変更OK）
+  // 認証用のユーザー名とパスワードを設定
   const USERNAME = "銀さん";
   const PASSWORD = "20100317";
 
-  if (user !== USERNAME || pass !== PASSWORD) {
+  // 入力を求める
+  const user = prompt("ユーザー名を入力してください:");
+  const pass = prompt("パスワードを入力してください:");
+
+  // 認証チェック
+  if (user === USERNAME && pass === PASSWORD) {
+    alert("認証成功！");
+  } else {
     alert("認証に失敗しました。");
-    document.body.innerHTML = "<h2>アクセス拒否</h2>";
+    window.location.href = "https://line.me/ti/g2/LE83JMivaJnu5pQGWG7Qt7MUObRPqqZRFP9U9w?utm_source=invitation&utm_medium=link_copy&utm_campaign=default";
     throw new Error("Unauthorized");
   }
 </script>
