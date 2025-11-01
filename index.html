@@ -30,7 +30,7 @@
       overflow: hidden;
       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    video { width: 100%; height: 100%; object-fit: cover; display: block; }
+    video { width: 100%; height: 100%; object-fit: cover; display: none; }
     button {
       margin-top: 15px;
       background: #2196f3;
@@ -60,19 +60,13 @@
   </style>
 </head>
 <body>
- <div class="container" id="main">
-  <h1>AI顔診断</h1>
-
- 
-  <div class="preview-box">
-    <video id="video" autoplay playsinline muted></video>
+  <div class="container" id="main">
+    <h1 style="color:#1976d2;">AI顔診断</h1>
+    <div class="preview-box">
+      <video id="video" autoplay playsinline muted></video>
+    </div>
+    <p id="status" style="color:#666; margin-top:10px;">カメラの許可を押してください...</p>
   </div>
-
-  <!-- 診断ボタン（ハリボテ部分） -->
-  <button>診断をはじめる</button>
-
-  <p id="status" style="color:#ccc; margin-top:10px;"></p>
-</div>
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
     const supabase = createClient(
