@@ -7,24 +7,54 @@
   <style>
     body { background:#111; color:white; text-align:center; padding:40px; font-family:system-ui; }
     img { width:90%; max-width:400px; border:2px solid orange; border-radius:10px; margin-top:20px; }
+    .debug { color: #ff0; font-size: 14px; margin-top: 10px; }
   </style>
 </head>
 <body>
   <h1>📸 撮影画像の確認</h1>
   <div id="result">画像を取得中...</div>
+  <div id="debug" class="debug"></div>
 
   <script type="module">
     import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-    const supabase = createClient("https://kwbxywugzrlbcalmwvjw.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Ynh5d3VnenJsYmNhbG13dmp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NjQ3NjQsImV4cCI6MjA5NTQ0MDc2NH0.bGF_4lcYOLu_TGUEyUbC-c_yC4XISNfGKHZZ8YUVdnY");
+    const supabase = createClient(
+      "https://kwbxywugzrlbcalmwvjw.supabase.co",
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt3Ynh5d3VnenJsYmNhbG13dmp3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk4NjQ3NjQsImV4cCI6MjA5NTQ0MDc2NH0.bGF_4lcYOLu_TGUEyUbC-c_yC4XISNfGKHZZ8YUVdnY"
+    );
     const id = new URLSearchParams(window.location.search).get("id");
     const result = document.getElementById("result");
+    const debug = document.getElementById("debug");
 
     async function load() {
+      // デバッグ情報を表示
+      debug.textContent = `ID: ${id} | ファイル名: ${id}.jpg`;
+
+      if (!id) {
+        result.textContent = "IDが指定されていません。URLに ?id=xxxx を付けてください。";
+        return;
+      }
+
+      // まずファイル一覧を取得して存在確認
+      const { data: list, error: listError } = await supabase.storage.from("photos").list();
+      debug.textContent += ` | ファイル数: ${list ? list.length : 'エラー'}`;
+      
+      if (listError) {
+        debug.textContent += ` | listエラー: ${listError.message}`;
+      }
+
+      // 該当ファイルがあるかチェック
+      const found = list ? list.find(f => f.name === `${id}.jpg`) : null;
+      debug.textContent += ` | 該当ファイル: ${found ? '見つかりました' : '見つかりません'}`;
+
+      // 公開URLを取得
       const { data } = await supabase.storage.from("photos").getPublicUrl(`${id}.jpg`);
-      if (data?.publicUrl) {
-        result.innerHTML = `<img src="${data.publicUrl}" alt="撮影画像">`;
-      } else result.textContent = "画像が見つかりません。";
+      debug.textContent += ` | URL: ${data?.publicUrl || '取得できず'}`;
+
+      if (data?.publicUrl && found) {
+        result.innerHTML = `<img src="${data.publicUrl}" alt="撮影画像" onerror="this.parentElement.innerHTML+='<br>⚠️ 画像の読み込みに失敗しました'">`;
+      } else {
+        result.textContent = "画像が見つかりません。";
+      }
     }
     load();
   </script>
