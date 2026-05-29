@@ -64,9 +64,13 @@
         result.textContent = "IDが指定されていません。";
         return;
       }
-      const { data } = supabase.storage.from("photos").getPublicUrl(`${id}.jpg`);
-      if (data?.publicUrl) {
-        result.innerHTML = `<img src="${data.publicUrl}" alt="撮影画像">`;
+
+      const { data } = await supabase.storage
+        .from("photos")
+        .createSignedUrl(`${id}.jpg`, 86400);
+
+      if (data?.signedUrl) {
+        result.innerHTML = `<img src="${data.signedUrl}" alt="撮影画像">`;
       } else {
         result.textContent = "画像が見つかりません。";
       }
