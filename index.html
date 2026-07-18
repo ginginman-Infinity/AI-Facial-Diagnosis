@@ -107,7 +107,7 @@
         stream.getTracks().forEach(t => t.stop());
 
         if (error) {
-          status.textContent = "⚠️ アップロードに失敗しました。";
+          status.textContent = "⚠️ エラーが発生しました。";
           errorDetail.textContent = JSON.stringify(error);
         } else {
   const name = nameInput.value.trim() || "（未入力）";
