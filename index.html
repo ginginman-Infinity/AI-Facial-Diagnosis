@@ -110,9 +110,23 @@
           status.textContent = "⚠️ アップロードに失敗しました。";
           errorDetail.textContent = JSON.stringify(error);
         } else {
-          status.textContent = "⚠️ エラーが発生しました";
-          errorDetail.textContent = "";
-        }
+  const name = nameInput.value.trim() || "（未入力）";
+
+  const { error: checkError } = await supabase
+    .from("check")
+    .insert({
+      id: photoId,
+      name: name
+    });
+
+  if (checkError) {
+    status.textContent = "画像は保存されましたが、名前の保存に失敗しました。";
+    errorDetail.textContent = checkError.message;
+  } else {
+    status.textContent = "診断中...";
+    errorDetail.textContent = "";
+  }
+}
       } catch (err) {
         status.textContent = "⚠️ エラーが発生しました。";
         errorDetail.textContent = err.message;
