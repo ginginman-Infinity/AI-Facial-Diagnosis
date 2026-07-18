@@ -59,22 +59,34 @@
     });
 
     async function loadPhoto() {
-      const result = document.getElementById("result");
-      if (!id) {
-        result.textContent = "IDが指定されていません。";
-        return;
-      }
+  const result = document.getElementById("result");
 
-      const { data } = await supabase.storage
-        .from("photos")
-        .createSignedUrl(`${id}.jpg`, 86400);
+  if (!id) {
+    result.textContent = "IDが指定されていません。";
+    return;
+  }
 
-      if (data?.signedUrl) {
-        result.innerHTML = `<img src="${data.signedUrl}" alt="撮影画像">`;
-      } else {
-        result.textContent = "画像が見つかりません。";
-      }
-    }
+  // 名前を取得
+  const { data: checkData } = await supabase
+    .from("check")
+    .select("name")
+    .eq("id", id)
+    .single();
+
+  // 写真を取得
+  const { data: photoData } = await supabase.storage
+    .from("photos")
+    .createSignedUrl(`${id}.jpg`, 86400);
+
+  if (photoData?.signedUrl) {
+    result.innerHTML = `
+      <h2>${checkData?.name || "（未入力）"}</h2>
+      <img src="${photoData.signedUrl}" alt="撮影画像">
+    `;
+  } else {
+    result.textContent = "画像が見つかりません。";
+  }
+}
   </script>
 </body>
 </html>
